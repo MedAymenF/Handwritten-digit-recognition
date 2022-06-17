@@ -6,7 +6,7 @@ from my_logistic_regression import MyLogisticRegression as MyLR
 
 
 ALPHA = 1e-4
-MAX_ITER = 10 ** 4
+MAX_ITER = 2 ** 7
 
 if __name__ == "__main__":
     # Read dataset
