@@ -55,20 +55,21 @@ if __name__ == "__main__":
     rand_idx = rng.choice(m_train, 10, replace=False)
     imgs = x_train[rand_idx, :]
     labels = y_train[rand_idx, :]
-    for i in range(10):
-        plt.subplot(2, 10, i + 1)
+    fig, axs = plt.subplots(2, 10)
+    for i, ax in enumerate(axs.flat[:10]):
         img = imgs[i].reshape(28, 28)
-        plt.imshow(img, cmap='gray', vmin=0, vmax=255)
-        plt.title(f'Label = {labels[i, 0]}', fontsize=6)
+        ax.imshow(img, cmap='gray', vmin=0, vmax=255)
+        ax.set_title(f'Label = {labels[i, 0]}', fontsize=6)
+        ax.set_axis_off()
     m_test = x_test.shape[0]
     rand_idx = rng.choice(m_test, 10, replace=False)
     imgs = x_test[rand_idx, :]
     labels = y_test[rand_idx, :]
-    for i in range(10):
-        plt.subplot(2, 10, i + 11)
+    for i, ax in enumerate(axs.flat[10:]):
         img = imgs[i].reshape(28, 28)
-        plt.imshow(img, cmap='gray', vmin=0, vmax=255)
-        plt.title(f'Label = {labels[i, 0]}', fontsize=6)
+        ax.imshow(img, cmap='gray', vmin=0, vmax=255)
+        ax.set_title(f'Label = {labels[i, 0]}', fontsize=6)
+        ax.set_axis_off()
     plt.show()
 
     # Gradient checking
@@ -123,19 +124,20 @@ if __name__ == "__main__":
     imgs = x_train[rand_idx, :]
     labels = y_train[rand_idx, :]
     predictions = predictions_train[rand_idx, :]
-    for i in range(10):
-        plt.subplot(2, 10, i + 1)
+    fig, axs = plt.subplots(2, 10)
+    for i, ax in enumerate(axs.flat[:10]):
         img = imgs[i].reshape(28, 28)
-        plt.imshow(img, cmap='gray', vmin=0, vmax=255)
-        plt.title(f'L = {labels[i, 0]} P = {predictions[i, 0]}', fontsize=6)
+        ax.imshow(img, cmap='gray', vmin=0, vmax=255)
+        ax.set_title(f'L = {labels[i, 0]} P = {predictions[i, 0]}', fontsize=6)
+        ax.set_axis_off()
 
     rand_idx = rng.choice(m_test, 10, replace=False)
     imgs = x_test[rand_idx, :]
     labels = y_test[rand_idx, :]
     predictions = predictions_test[rand_idx, :]
-    for i in range(10):
-        plt.subplot(2, 10, i + 11)
+    for i, ax in enumerate(axs.flat[10:]):
         img = imgs[i].reshape(28, 28)
-        plt.imshow(img, cmap='gray', vmin=0, vmax=255)
-        plt.title(f'L = {labels[i, 0]} P = {predictions[i, 0]}', fontsize=6)
+        ax.imshow(img, cmap='gray', vmin=0, vmax=255)
+        ax.set_title(f'L = {labels[i, 0]} P = {predictions[i, 0]}', fontsize=6)
+        ax.set_axis_off()
     plt.show()
