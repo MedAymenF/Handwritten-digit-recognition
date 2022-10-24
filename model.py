@@ -27,7 +27,7 @@ class MultiLayerPerceptron():
 
     def rand_initialize_weights(self, l_in, l_out):
         epsilon_init = np.sqrt(6) / np.sqrt(l_in + l_out)
-        weights = np.random.default_rng().uniform(size=(l_out, l_in + 1))
+        weights = np.random.default_rng(1337).uniform(size=(l_out, l_in + 1))
         weights = weights * 2 * epsilon_init - epsilon_init
         return weights
 
@@ -67,7 +67,7 @@ class MultiLayerPerceptron():
             index += out_size * (in_size + 1)
         return thetas
 
-    def crossentropy_loss(self, y_matrix, h, thetas):
+    def crossentropy_loss(self, y_matrix, h, thetas, reg=False):
         m = h.shape[0]
         if self.output_layer == 'sigmoid':
             J = - (y_matrix * np.log(h)
@@ -75,9 +75,10 @@ class MultiLayerPerceptron():
         elif self.output_layer == 'softmax':
             J = - (y_matrix * np.log(h)).sum() / m
 
-        # Add regularization term
-        J = J + self.lambda_ / (2 * m) * sum(
-            [(theta[:, 1:] ** 2).sum() for theta in thetas])
+        if reg:
+            # Add regularization term
+            J = J + self.lambda_ / (2 * m) * sum(
+                [(theta[:, 1:] ** 2).sum() for theta in thetas])
         return J
 
     def nn_cost_function(self, init_theta, X, y):
@@ -172,4 +173,4 @@ class MultiLayerPerceptron():
         return predictions
 
     def mse(self, predictions, y):
-        return ((predictions - y) ** 2).sum() / y.shape[0]
+        return ((predictions - y) ** 2).mean()

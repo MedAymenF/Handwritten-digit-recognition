@@ -18,7 +18,7 @@ def check_nn_gradients():
     mlp = MultiLayerPerceptron(architecture,
                                lambda_=lambda_, output_layer='softmax')
 
-    X = np.random.default_rng().uniform(size=(m, input_layer_size))
+    X = np.random.default_rng(1337).uniform(size=(m, input_layer_size))
     y = (np.arange(m) % num_labels).reshape(-1, 1)
 
     def nn_cost(theta):
@@ -61,6 +61,7 @@ if __name__ == "__main__":
         ax.imshow(img, cmap='gray', vmin=0, vmax=255)
         ax.set_title(f'Label = {labels[i, 0]}', fontsize=6)
         ax.set_axis_off()
+
     m_test = x_test.shape[0]
     rand_idx = rng.choice(m_test, 10, replace=False)
     imgs = x_test[rand_idx, :]
@@ -140,4 +141,5 @@ if __name__ == "__main__":
         ax.imshow(img, cmap='gray', vmin=0, vmax=255)
         ax.set_title(f'L = {labels[i, 0]} P = {predictions[i, 0]}', fontsize=6)
         ax.set_axis_off()
+    fig.suptitle('(L)abels vs (P)redictions')
     plt.show()
