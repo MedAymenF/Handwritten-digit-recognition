@@ -94,7 +94,7 @@ class MultiLayerPerceptron():
         y_matrix = labels_vec[y.ravel(), :]
 
         # Calculate the cost function
-        J = self.crossentropy_loss(y_matrix, h, thetas)
+        J = self.crossentropy_loss(y_matrix, h, thetas, self.lambda_ > 0)
 
         # Backpropagation
         m = X.shape[0]
