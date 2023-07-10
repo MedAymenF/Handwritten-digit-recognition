@@ -3,12 +3,11 @@ import numpy as np
 
 class MultiLayerPerceptron():
     """A feedforward neural network"""
-    def __init__(self, architecture, lambda_=0, init_theta=None,
-                 output_layer='softmax'):
+    def __init__(self, architecture, lambda_=0, init_theta=None):
         self.architecture = architecture
         self.depth = len(architecture) - 1
         self.lambda_ = lambda_
-        self.output_layer = output_layer
+        self.output_layer = architecture[-1][1]
 
         if isinstance(init_theta, np.ndarray):
             self.theta = init_theta
@@ -17,8 +16,9 @@ class MultiLayerPerceptron():
             # Randomly initialize weights
             self.thetas = []
             for i in range(self.depth):
-                init_theta = self.rand_initialize_weights(architecture[i],
-                                                          architecture[i + 1])
+                init_theta = self.rand_initialize_weights(
+                    architecture[i][0],
+                    architecture[i + 1][0])
                 self.thetas.append(init_theta)
 
             # Unroll parameters (weights)
@@ -34,6 +34,9 @@ class MultiLayerPerceptron():
     def sigmoid(self, z):
         return (1 / (1 + np.exp(-z)))
 
+    def relu(self, z):
+        return np.maximum(0, z)
+
     def softmax(self, z):
         exps = np.exp(z - z.max(axis=1, keepdims=True))
         return exps / exps.sum(axis=1, keepdims=True)
@@ -45,7 +48,11 @@ class MultiLayerPerceptron():
         a = np.concatenate((intercept, X), axis=1)
         activations.append(a)
         for i in range(self.depth - 1):
-            a = self.sigmoid(a @ thetas[i].T)
+            activation = self.architecture[i + 1][1]
+            if activation == 'sigmoid':
+                a = self.sigmoid(a @ thetas[i].T)
+            elif activation == 'relu':
+                a = self.relu(a @ thetas[i].T)
             a = np.concatenate((intercept, a), axis=1)
             activations.append(a)
         if self.output_layer == 'softmax':
@@ -59,8 +66,8 @@ class MultiLayerPerceptron():
         thetas = []
         index = 0
         for i in range(self.depth):
-            in_size = self.architecture[i]
-            out_size = self.architecture[i + 1]
+            in_size = self.architecture[i][0]
+            out_size = self.architecture[i + 1][0]
             extracted_theta = theta[index:index + out_size * (in_size + 1)]
             extracted_theta = extracted_theta.reshape(out_size, in_size + 1)
             thetas.append(extracted_theta)
@@ -90,8 +97,12 @@ class MultiLayerPerceptron():
         h = activations.pop()
 
         # One-hot encode the labels
-        labels_vec = np.eye(self.architecture[-1])
-        y_matrix = labels_vec[y.ravel(), :]
+        n_out = self.architecture[-1][0]
+        if n_out > 1:
+            labels_vec = np.eye(n_out)
+            y_matrix = labels_vec[y.ravel(), :]
+        else:
+            y_matrix = y
 
         # Calculate the cost function
         J = self.crossentropy_loss(y_matrix, h, thetas, self.lambda_ > 0)
@@ -103,8 +114,13 @@ class MultiLayerPerceptron():
         theta_grad = delta.T @ activations[-1] / m
         thetas_grad.append(theta_grad)
         for i in range(self.depth - 1):
-            delta = (delta @ thetas[-1 - i])\
-                * activations[-1 - i] * (1 - activations[-1 - i])
+            activation = self.architecture[-2 - i][1]
+            if activation == 'sigmoid':
+                activation_derivative = activations[-1 - i] *\
+                    (1 - activations[-1 - i])
+            elif activation == 'relu':
+                activation_derivative = (activations[-1 - i] > 0).astype(int)
+            delta = (delta @ thetas[-1 - i]) * activation_derivative
             delta = delta[:, 1:]
             theta_grad = delta.T @ activations[-2 - i] / m
             thetas_grad.append(theta_grad)
@@ -141,20 +157,28 @@ class MultiLayerPerceptron():
         indices = range(batch_size, x_train.shape[0], batch_size)
         x_batches = np.split(x_train, indices)
         y_batches = np.split(y_train, indices)
-        n_batches = len(x_batches)
         J_train_history, J_valid_history = [], []
         for i in range(epochs):
-            x_batch = x_batches[i % n_batches]
-            y_batch = y_batches[i % n_batches]
-            J_train, grad = self.nn_cost_function(self.theta, x_batch, y_batch)
-            J_valid, _ = self.nn_cost_function(self.theta, x_valid, y_valid)
-            if (i > 1000 and J_valid > J_valid_history[-100]):
-                break
+            J_train_batches, J_valid_batches = [], []
+            for x_batch, y_batch in zip(x_batches, y_batches):
+                J_train_batch, grad = self.nn_cost_function(
+                    self.theta, x_batch, y_batch)
+                J_valid_batch, _ = self.nn_cost_function(
+                    self.theta, x_valid, y_valid)
+                J_train_batches.append(J_train_batch)
+                J_valid_batches.append(J_valid_batch)
+                self.theta = self.theta - alpha * grad
+            J_train = np.mean(J_train_batches)
+            J_valid = np.mean(J_valid_batches)
             J_train_history.append(J_train)
             J_valid_history.append(J_valid)
-            print(f'epoch {i}/{epochs} - loss: {J_train:.4f}\
+            print(f'epoch {i + 1}/{epochs} - loss: {J_train:.4f}\
  - val_loss: {J_valid:.4f}')
-            self.theta = self.theta - alpha * grad
+
+            # Early stopping
+            min_J_valid_idx = np.argmin(J_valid_history)
+            if i - min_J_valid_idx > 10:
+                break
 
         # Extract thetas from optimal theta
         self.thetas = self.extract_thetas(self.theta)
@@ -163,8 +187,11 @@ class MultiLayerPerceptron():
     def predict(self, X, verbose=False, y=None):
         activations = self.feedforward(self.thetas, X)
         h = activations[-1]
-        predictions = np.argmax(h, axis=1).reshape(-1, 1)
-        if (verbose):
+        if self.output_layer == 'softmax':
+            predictions = np.argmax(h, axis=1).reshape(-1, 1)
+        elif self.output_layer == 'sigmoid':
+            predictions = h
+        if (verbose and self.output_layer == 'softmax'):
             for _, raw in zip(np.hstack([y, predictions]), h):
                 if (_[0] == _[1]):
                     print(f'-> {tuple(_)} - raw{raw}')
